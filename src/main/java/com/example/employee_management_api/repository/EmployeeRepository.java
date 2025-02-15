@@ -21,5 +21,7 @@ import java.util.List;
  */
 @Repository
 public interface EmployeeRepository extends MongoRepository<Employee, String> {
-    // Todo: method signatures for additional methods
+    Employee findByEmployeeId(String employeeId);
+    Employee findEmployeeByEmail(String email);
+    List<Employee> findByFullNameOrDepartmentContainingIgnoreCase(String name, String department);
 }

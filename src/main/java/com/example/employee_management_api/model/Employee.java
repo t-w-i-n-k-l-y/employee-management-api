@@ -41,6 +41,9 @@ public class Employee {
     @LastModifiedDate   // Auto updated when a document is modified
     private String lastModifiedAt;
 
+    public Employee() {
+    }
+
     public Employee(String id, String employeeId, String fullName, String email, Department department, String createdAt, String lastModifiedAt) {
         this.id = id;
         this.employeeId = employeeId;
