@@ -101,6 +101,10 @@ public class EmployeeService {
             existingEmployee.setFullName(updatedEmployeeDTO.getFullName());
         }
         if(updatedEmployeeDTO.getEmail() != null) {
+            if (employeeRepository.findEmployeeByEmail(updatedEmployeeDTO.getEmail()) != null) {
+                logger.error("Employee update failed: Email {} already exists", updatedEmployeeDTO.getEmail());
+                throw new DuplicateValueException("Employee email already exists");
+            }
             existingEmployee.setEmail(updatedEmployeeDTO.getEmail());
         }
         if(updatedEmployeeDTO.getDepartment() != null) {
