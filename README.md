@@ -45,6 +45,3 @@ This repository contains a Spring Boot RESTful API for managing employees, utili
 | POST   | `/api/employees`                                                                            | Create a new employee                                                                    |
 | PUT    | `/api/employees/{id}`                                                                       | Update an employee by `id` (Employee Id)                                                 |
 | DELETE | `/api/employees/{id}`                                                                       | Delete an employee by `id` (Employee Id)                                                 |
-
-## API Request Payloads
-You can import the Postman collection for ready-to-use API requests.
