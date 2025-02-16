@@ -36,15 +36,15 @@ This repository contains a Spring Boot RESTful API for managing employees, utili
 
 ## API Endpoints
 
-| Method | Endpoint                     | Description                                     |
-|--------|------------------------------|-------------------------------------------------|
-| GET    | `/api/employees`             | Retrieve all employees                         |
-| GET    | `/api/employees` (with `employeeID` query param) | Retrieve employee by `employeeID` |
-| GET    | `/api/employees/{id}`        | Retrieve employee by path `id`                 |
+| Method | Endpoint                                                                | Description                                     |
+|--------|-------------------------------------------------------------------------|-------------------------------------------------|
+| GET    | `/api/employees`                                                        | Retrieve all employees                          |
+| GET    | `/api/employees` (with `employeeId` query param)                        | Retrieve employee by `employeeID`               |
+| GET    | `/api/employees/{id}`                                                   | Retrieve employee by path `id`                  |
 | GET    | `/api/employees/search` (with `fullName` and `department` query params) | Search employees by `fullName` and `department` |
-| POST   | `/api/employees`             | Create a new employee                          |
-| PUT    | `/api/employees/{id}`        | Update an employee by `id`                     |
-| DELETE | `/api/employees/{id}`        | Delete an employee by `id`                     |
+| POST   | `/api/employees`                                                        | Create a new employee                           |
+| PUT    | `/api/employees/{id}`                                                   | Update an employee by `id`                      |
+| DELETE | `/api/employees/{id}`                                                   | Delete an employee by `id`                      |
 
 ## API Request Payloads
 You can import the Postman collection for ready-to-use API requests.
