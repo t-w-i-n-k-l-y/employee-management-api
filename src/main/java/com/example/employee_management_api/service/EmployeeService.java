@@ -2,6 +2,7 @@ package com.example.employee_management_api.service;
 
 import com.example.employee_management_api.dto.EmployeeDTO;
 import com.example.employee_management_api.exception.DuplicateValueException;
+import com.example.employee_management_api.exception.ResourceNotFoundException;
 import com.example.employee_management_api.mapper.EmployeeMapper;
 import com.example.employee_management_api.model.Employee;
 import com.example.employee_management_api.repository.EmployeeRepository;
@@ -9,10 +10,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.client.ResourceAccessException;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service class for managing employees.
@@ -72,7 +77,7 @@ public class EmployeeService {
 
         Employee existingEmployee = employeeRepository.findByEmployeeId(employeeId);
         if(existingEmployee == null) {
-            logger.error("Employee not found with ID: {}", employeeId);
+            logger.error("Requested employee not found with ID: {}", employeeId);
             throw new ResourceAccessException("Employee not found with ID: " + employeeId);
         }
 
@@ -100,4 +105,156 @@ public class EmployeeService {
             throw new RuntimeException("An unexpected error occurred.");
         }
     }
+
+    /**
+     * Delete an existing employee.
+     *
+     * @return the deleted employee
+     */
+    public EmployeeDTO deleteEmployee(String id) {
+        logger.info("Deleting employee with ID: {}", id);
+
+        Employee existingEmployee = employeeRepository.findByEmployeeId(id);
+        if(existingEmployee == null) {
+            logger.error("Employee not found with ID: {}", id);
+            throw new ResourceNotFoundException("Employee not found with ID: " + id);
+        }
+
+        try {
+            employeeRepository.delete(existingEmployee);
+            logger.info("Successfully deleted employee with ID: {}", id);
+
+            return EmployeeMapper.toDTO(existingEmployee);
+
+        } catch (DataAccessException e) {
+            logger.error("Database error while deleting employee with ID: {}", id, e);
+            throw new RuntimeException("Database error occurred while deleting employee.");
+
+        } catch (Exception e) {
+            logger.error("Unexpected error occurred while deleting employee with ID: {}", id, e);
+            throw new RuntimeException("An unexpected error occurred. Please try again later.");
+        }
+    }
+
+    /**
+     * Get an existing employee by mongoDB ID.
+     *
+     * @return the employee if exists or else return an error
+     */
+    public EmployeeDTO getEmployeeById (String id) {
+        logger.info("Getting employee details for the _id: {}", id);
+        try {
+            Employee employee = employeeRepository.findById(id).orElse(null);
+            if (employee == null) {
+                logger.error("Cannot find the employee for the given _id: {}", id);
+                throw new ResourceNotFoundException("No Employee found for the given _id: " + id);
+            }
+            logger.info("Successfully retrieved employee details for the _id: {}", id);
+            return EmployeeMapper.toDTO(employee);
+        } catch (ResourceNotFoundException e) {
+            logger.error("No employee found for the given _id.");
+            throw new ResourceNotFoundException(e.getMessage());
+        } catch (Exception e) {
+            logger.error("An error occurred while retrieving employee by _id.");
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Get an existing employee by employee ID.
+     *
+     * @return the employee if exists or else return an error
+     */
+    public EmployeeDTO getEmployeeByEmployeeId (String employeeId) {
+        logger.info("Getting employee details for the employee id: {}", employeeId);
+        try {
+            Employee employee = employeeRepository.findByEmployeeId(employeeId);
+            if (employee == null) {
+                logger.error("Cannot find the employee for the given employee id: {}", employeeId);
+                throw new ResourceNotFoundException("No Employee found for the given id: " + employeeId);
+            }
+            logger.info("Successfully retrieved employee details for the employee id: {}", employeeId);
+            return EmployeeMapper.toDTO(employee);
+        } catch (ResourceNotFoundException e) {
+            logger.error("No employee found for the given employee id.");
+            throw new ResourceNotFoundException(e.getMessage());
+        } catch (Exception e) {
+            logger.error("An error occurred while retrieving employee by employee id.");
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Get all employees
+     *
+     * @return all existing employees
+     */
+    public List<EmployeeDTO> getAllEmployees() {
+        logger.info("Fetching all employees from the database");
+
+        try {
+            List<Employee> employees = employeeRepository.findAll();
+
+            if (employees.isEmpty()) {
+                logger.warn("No employees found in the database.");
+                throw new ResourceNotFoundException("No employees found in the database");
+            }
+
+            logger.info("Successfully retrieved {} employees.", employees.size());
+
+            return employees.stream()
+                    .map(EmployeeMapper::toDTO)
+                    .collect(Collectors.toList());
+
+        } catch(ResourceNotFoundException e) {
+            throw new ResourceNotFoundException(e.getMessage());
+        } catch (DataAccessException e) {
+            logger.error("Database error while fetching employees.", e);
+            throw new RuntimeException("Database error occurred while retrieving employees. Please try again later.");
+        } catch (Exception e) {
+            logger.error("Unexpected error occurred while fetching employees.", e);
+            throw new RuntimeException("An unexpected error occurred. Please try again later.");
+        }
+    }
+
+    /**
+     * Get all employees by name or department
+     *
+     * @return all existing employees that matches the given name or department
+     */
+    public List<EmployeeDTO> getAllEmployeesByFullNameOrDepartment(String fullName, String department) {
+        logger.info("Fetching all employees from the database matches name or department");
+
+        List<Employee> employees;
+        try {
+            if(fullName != null && department != null) {
+                employees = employeeRepository.findByFullNameOrDepartment(fullName, department);
+            } else if (fullName != null) {
+                employees = employeeRepository.findByFullNameContainingIgnoreCase(fullName);
+            } else {
+                employees = employeeRepository.findByDepartmentContainingIgnoreCase(department);
+            }
+
+            if (employees.isEmpty()) {
+                logger.warn("No employees found with similar name or department");
+                throw new ResourceNotFoundException("No employees found in the database");
+            }
+
+            logger.info("Successfully retrieved {} employees for given name or department", employees.size());
+
+            return employees.stream()
+                    .map(EmployeeMapper::toDTO)
+                    .collect(Collectors.toList());
+
+        } catch(ResourceNotFoundException e) {
+            throw new ResourceNotFoundException(e.getMessage());
+        } catch (DataAccessException e) {
+            logger.error("Database error while fetching employees.", e);
+            throw new RuntimeException("Database error occurred while retrieving employees. Please try again later.");
+        } catch (Exception e) {
+            logger.error("Unexpected error occurred while fetching employees.", e);
+            throw new RuntimeException("An unexpected error occurred. Please try again later.");
+        }
+    }
+
 }

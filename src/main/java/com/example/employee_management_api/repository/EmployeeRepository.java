@@ -1,7 +1,10 @@
 package com.example.employee_management_api.repository;
 
 import com.example.employee_management_api.model.Employee;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -23,5 +26,10 @@ import java.util.List;
 public interface EmployeeRepository extends MongoRepository<Employee, String> {
     Employee findByEmployeeId(String employeeId);
     Employee findEmployeeByEmail(String email);
-    List<Employee> findByFullNameOrDepartmentContainingIgnoreCase(String name, String department);
+
+    @Query("{'$or': [ {'fullName': {$regex: ?0, $options: 'i'}}, {'department': {$regex: ?1, $options: 'i'}} ]}")
+    List<Employee> findByFullNameOrDepartment(String fullName, String department);
+
+    List<Employee> findByFullNameContainingIgnoreCase(String fullName);
+    List<Employee> findByDepartmentContainingIgnoreCase(String department);
 }
