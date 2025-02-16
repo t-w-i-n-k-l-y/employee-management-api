@@ -21,6 +21,4 @@ public interface EmployeeRepository extends MongoRepository<Employee, String> {
 
     @Query("{'$or': [ {'fullName': {$regex: ?0, $options: 'i'}}, {'department': {$regex: ?1, $options: 'i'}} ]}")
     Page<Employee> findByFullNameOrDepartment(String fullName, String department, Pageable pageable);
-    Page<Employee> findByFullNameContainingIgnoreCase(String fullName, Pageable pageable);
-    Page<Employee> findByDepartmentContainingIgnoreCase(String department, Pageable pageable);
 }

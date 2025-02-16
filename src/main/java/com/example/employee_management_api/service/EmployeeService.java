@@ -218,17 +218,11 @@ public class EmployeeService {
 
         Page<Employee> employees;
         try {
-            if (fullName == null && department == null) {
-                logger.error("At least one parameter (name or department) must be provided.");
-                throw new IllegalArgumentException("At least one parameter (name or department) must be provided.");
-            }
-            if(fullName != null && department != null) {
-                employees = employeeRepository.findByFullNameOrDepartment(fullName, department, pageable);
-            } else if (fullName != null) {
-                employees = employeeRepository.findByFullNameContainingIgnoreCase(fullName, pageable);
-            } else {
-                employees = employeeRepository.findByDepartmentContainingIgnoreCase(department, pageable);
-            }
+            // Handle fullName or department null scenarios for the regex
+            String fullNameQuery = (fullName == null || fullName.isEmpty()) ? "" : fullName;
+            String departmentQuery = (department == null || department.isEmpty()) ? "" : department;
+
+            employees = employeeRepository.findByFullNameOrDepartment(fullNameQuery, departmentQuery, pageable);
 
             if (employees.isEmpty()) {
                 logger.warn("No employees found with similar name or department");
