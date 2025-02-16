@@ -1,12 +1,15 @@
 package com.example.employee_management_api.controller;
 
 import com.example.employee_management_api.dto.EmployeeDTO;
+import com.example.employee_management_api.exception.ResourceNotFoundException;
 import com.example.employee_management_api.service.EmployeeService;
 import com.example.employee_management_api.util.APIResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +32,7 @@ public class EmployeeController {
      * Creates a new employee object.
      *
      * @param employeeDTO the employee data transfer object to create, validated by @Valid
-     * @return a ResponseEntity containing an ApiResponse with the created BlogPost object or a 500 status if creation fails
+     * @return a ResponseEntity containing an ApiResponse with the created Employee object or a 500 status if creation fails
      */
     @PostMapping
     public ResponseEntity<APIResponse<EmployeeDTO>> createEmployee (@Valid @RequestBody EmployeeDTO employeeDTO) {
@@ -40,5 +43,24 @@ public class EmployeeController {
         }
         logger.info("New employee created with employeeId: {}", savedEmployeeDTO.getEmployeeId());
         return ResponseEntity.status(201).body(new APIResponse<>("Employee created successfully.", savedEmployeeDTO, 201));
+    }
+
+    /**
+     * Updates an existing employee object.
+     *
+     * @return a ResponseEntity containing an ApiResponse with the updated Employee object or a 404 status if employee not found
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<APIResponse<EmployeeDTO>> updateEmployee(@PathVariable String id, @Valid @RequestBody EmployeeDTO employeeDTO) {
+        logger.info("Received request to update employee with ID: {}", id);
+
+        EmployeeDTO updatedEmployeeDTO = employeeService.updateEmployee(id, employeeDTO);
+        if (updatedEmployeeDTO == null) {
+            logger.warn("Update failed or returned empty DTO for employee ID: {}", id);
+            return ResponseEntity.status(500).body(new APIResponse<>("Employee update failed.", null, 500));
+        }
+
+        logger.info("Successfully updated employee with ID: {}", id);
+        return ResponseEntity.status(200).body(new APIResponse<>("Employee details updated successfully.", updatedEmployeeDTO, 200));
     }
 }
