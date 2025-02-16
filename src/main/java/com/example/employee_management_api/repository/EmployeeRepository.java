@@ -7,8 +7,6 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-
 /**
  * Repository interface for Employee entity
  * <p>
@@ -28,8 +26,7 @@ public interface EmployeeRepository extends MongoRepository<Employee, String> {
     Employee findEmployeeByEmail(String email);
 
     @Query("{'$or': [ {'fullName': {$regex: ?0, $options: 'i'}}, {'department': {$regex: ?1, $options: 'i'}} ]}")
-    List<Employee> findByFullNameOrDepartment(String fullName, String department);
-
-    List<Employee> findByFullNameContainingIgnoreCase(String fullName);
-    List<Employee> findByDepartmentContainingIgnoreCase(String department);
+    Page<Employee> findByFullNameOrDepartment(String fullName, String department, Pageable pageable);
+    Page<Employee> findByFullNameContainingIgnoreCase(String fullName, Pageable pageable);
+    Page<Employee> findByDepartmentContainingIgnoreCase(String department, Pageable pageable);
 }

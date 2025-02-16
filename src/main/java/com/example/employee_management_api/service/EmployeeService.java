@@ -10,13 +10,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.client.ResourceAccessException;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -189,18 +188,18 @@ public class EmployeeService {
      *
      * @return all existing employees
      */
-    public List<EmployeeDTO> getAllEmployees() {
+    public List<EmployeeDTO> getAllEmployees(Pageable pageable) {
         logger.info("Fetching all employees from the database");
 
         try {
-            List<Employee> employees = employeeRepository.findAll();
+            Page<Employee> employees = employeeRepository.findAll(pageable);
 
             if (employees.isEmpty()) {
                 logger.warn("No employees found in the database.");
                 throw new ResourceNotFoundException("No employees found in the database");
             }
 
-            logger.info("Successfully retrieved {} employees.", employees.size());
+            logger.info("Successfully retrieved {} employees.", employees.getSize());
 
             return employees.stream()
                     .map(EmployeeMapper::toDTO)
@@ -222,17 +221,21 @@ public class EmployeeService {
      *
      * @return all existing employees that matches the given name or department
      */
-    public List<EmployeeDTO> getAllEmployeesByFullNameOrDepartment(String fullName, String department) {
+    public List<EmployeeDTO> getAllEmployeesByFullNameOrDepartment(String fullName, String department, Pageable pageable) {
         logger.info("Fetching all employees from the database matches name or department");
 
-        List<Employee> employees;
+        Page<Employee> employees;
         try {
+            if (fullName == null && department == null) {
+                logger.error("At least one parameter (name or department) must be provided.");
+                throw new IllegalArgumentException("At least one parameter (name or department) must be provided.");
+            }
             if(fullName != null && department != null) {
-                employees = employeeRepository.findByFullNameOrDepartment(fullName, department);
+                employees = employeeRepository.findByFullNameOrDepartment(fullName, department, pageable);
             } else if (fullName != null) {
-                employees = employeeRepository.findByFullNameContainingIgnoreCase(fullName);
+                employees = employeeRepository.findByFullNameContainingIgnoreCase(fullName, pageable);
             } else {
-                employees = employeeRepository.findByDepartmentContainingIgnoreCase(department);
+                employees = employeeRepository.findByDepartmentContainingIgnoreCase(department, pageable);
             }
 
             if (employees.isEmpty()) {
@@ -240,7 +243,7 @@ public class EmployeeService {
                 throw new ResourceNotFoundException("No employees found in the database");
             }
 
-            logger.info("Successfully retrieved {} employees for given name or department", employees.size());
+            logger.info("Successfully retrieved {} employees for given name or department", employees.getSize());
 
             return employees.stream()
                     .map(EmployeeMapper::toDTO)

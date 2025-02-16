@@ -4,7 +4,6 @@ import com.example.employee_management_api.dto.EmployeeDTO;
 import com.example.employee_management_api.model.Employee;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.mapping.MappingException;
 
 import java.time.Instant;
 

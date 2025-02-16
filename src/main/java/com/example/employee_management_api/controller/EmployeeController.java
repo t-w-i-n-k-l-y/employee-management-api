@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -107,7 +108,7 @@ public class EmployeeController {
      * @return a ResponseEntity containing an ApiResponse with the Employee object (query parameter is given)/ employee list or a 404 status if not found
      */
     @GetMapping()
-    public ResponseEntity<APIResponse<?>> getEmployeeByEmployeeId (@RequestParam(required = false) String employeeId) {
+    public ResponseEntity<APIResponse<?>> getAllEmployeesOrEmployeeByEmployeeId (@RequestParam(required = false) String employeeId, Pageable pageable) {
 
         if (employeeId != null) {
             logger.info("Received request to find employee with employee id: {}", employeeId);
@@ -122,7 +123,7 @@ public class EmployeeController {
 
         } else {
             logger.info("Received request to find all employees");
-            List<EmployeeDTO> employees = employeeService.getAllEmployees();
+            List<EmployeeDTO> employees = employeeService.getAllEmployees(pageable);
 
             if (employees.isEmpty()) {
                 return ResponseEntity.status(404).body(new APIResponse<>("No employees found.", employees, 404));
@@ -138,14 +139,9 @@ public class EmployeeController {
      * @return a ResponseEntity containing an ApiResponse with the Employees having the given name or department or a 404 status if not found
      */
     @GetMapping("/search")
-    public ResponseEntity<APIResponse<Object>> getEmployeesByFullNameOrDepartment(@RequestParam(required = false) String fullName, @RequestParam(required = false) String department) {
+    public ResponseEntity<APIResponse<Object>> getEmployeesByFullNameOrDepartment(@RequestParam(required = false) String fullName, @RequestParam(required = false) String department, Pageable pageable) {
 
-        if (fullName == null && department == null) {
-            logger.error("At least one parameter (name or department) must be provided.");
-            throw new IllegalArgumentException("At least one parameter (name or department) must be provided.");
-        }
-
-        List<EmployeeDTO> employeeDTOS = employeeService.getAllEmployeesByFullNameOrDepartment(fullName, department);
+        List<EmployeeDTO> employeeDTOS = employeeService.getAllEmployeesByFullNameOrDepartment(fullName, department, pageable);
         if (employeeDTOS.isEmpty()) {
             logger.error("No matching employees exists for the name: {} or department: {}", fullName, department);
             return ResponseEntity.status(404).body(new APIResponse<>("No employees found.", null, 404));
