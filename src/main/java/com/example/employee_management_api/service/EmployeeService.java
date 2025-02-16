@@ -18,6 +18,7 @@ import org.springframework.web.client.ResourceAccessException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +32,8 @@ public class EmployeeService {
     private final ModelMapper modelMapper;
     private static final Logger logger = LoggerFactory.getLogger(EmployeeService.class);
 
+    private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@(.+)$";
+
     @Autowired
     public EmployeeService(EmployeeRepository employeeRepository, CounterService counterService, ModelMapper modelMapper) {
         this.employeeRepository = employeeRepository;
@@ -43,6 +46,16 @@ public class EmployeeService {
      */
     public EmployeeDTO createEmployee(EmployeeDTO employeeDTO) {
         logger.info("Attempting to create a new employee with email: {}", employeeDTO.getEmail());
+
+        if (employeeDTO.getFullName().isEmpty() || employeeDTO.getEmail().isEmpty() || employeeDTO.getDepartment().toString().isEmpty()) {
+            logger.error("Employee creation failed: Full name, email and department are required");
+            throw new IllegalArgumentException("Full name, email, and department cannot be empty");
+        }
+
+        if (!Pattern.matches(EMAIL_REGEX, employeeDTO.getEmail())) {
+            logger.error("Employee creation failed: invalid email");
+            throw new IllegalArgumentException("Invalid email format: " + employeeDTO.getEmail());
+        }
 
         if (employeeRepository.findEmployeeByEmail(employeeDTO.getEmail()) != null) {
             logger.error("Employee creation failed: Email {} already exists", employeeDTO.getEmail());
