@@ -2,6 +2,7 @@ package com.example.employee_management_api.service;
 
 import com.example.employee_management_api.dto.EmployeeDTO;
 import com.example.employee_management_api.exception.DuplicateValueException;
+import com.example.employee_management_api.exception.ResourceNotFoundException;
 import com.example.employee_management_api.mapper.EmployeeMapper;
 import com.example.employee_management_api.model.Employee;
 import com.example.employee_management_api.repository.EmployeeRepository;
@@ -72,7 +73,7 @@ public class EmployeeService {
 
         Employee existingEmployee = employeeRepository.findByEmployeeId(employeeId);
         if(existingEmployee == null) {
-            logger.error("Employee not found with ID: {}", employeeId);
+            logger.error("Requested employee not found with ID: {}", employeeId);
             throw new ResourceAccessException("Employee not found with ID: " + employeeId);
         }
 
@@ -98,6 +99,36 @@ public class EmployeeService {
         } catch (Exception e) {
             logger.error("Unexpected error while updating employee with ID: {}", employeeId, e);
             throw new RuntimeException("An unexpected error occurred.");
+        }
+    }
+
+    /**
+     * Delete an existing employee.
+     *
+     * @return the deleted employee
+     */
+    public EmployeeDTO deleteEmployee(String id) {
+        logger.info("Deleting employee with ID: {}", id);
+
+        Employee existingEmployee = employeeRepository.findByEmployeeId(id);
+        if(existingEmployee == null) {
+            logger.error("Employee not found with ID: {}", id);
+            throw new ResourceNotFoundException("Employee not found with ID: " + id);
+        }
+
+        try {
+            employeeRepository.delete(existingEmployee);
+            logger.info("Successfully deleted employee with ID: {}", id);
+
+            return EmployeeMapper.toDTO(existingEmployee);
+
+        } catch (DataAccessException e) {
+            logger.error("Database error while deleting employee with ID: {}", id, e);
+            throw new RuntimeException("Database error occurred while deleting employee.");
+
+        } catch (Exception e) {
+            logger.error("Unexpected error occurred while deleting employee with ID: {}", id, e);
+            throw new RuntimeException("An unexpected error occurred. Please try again later.");
         }
     }
 }

@@ -63,4 +63,22 @@ public class EmployeeController {
         logger.info("Successfully updated employee with ID: {}", id);
         return ResponseEntity.status(200).body(new APIResponse<>("Employee details updated successfully.", updatedEmployeeDTO, 200));
     }
+
+    /**
+     * Deletes an employee by ID.
+     *
+     * @param id the ID of the employee to delete
+     * @return a ResponseEntity containing an ApiResponse with the deleted Employee object or a 404 status if not found
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<APIResponse<EmployeeDTO>> deleteEmployee(@PathVariable String id) {
+        logger.info("Received request to delete employee with ID: {}", id);
+
+        EmployeeDTO deletedEmployeeDTO = employeeService.deleteEmployee(id);
+        if (deletedEmployeeDTO == null) {
+            logger.error("Delete failed - Employee with ID {} not found.", id);
+            return ResponseEntity.status(404).body(new APIResponse<>("Employee not found. Unable to delete.", null, 404));
+        }
+        return ResponseEntity.status(200).body(new APIResponse<>("Employee details deleted successfully.", deletedEmployeeDTO, 200));
+    }
 }
