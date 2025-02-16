@@ -32,7 +32,7 @@ public class EmployeeService {
     private final ModelMapper modelMapper;
     private static final Logger logger = LoggerFactory.getLogger(EmployeeService.class);
 
-    private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@(.+)$";
+    private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
 
     @Autowired
     public EmployeeService(EmployeeRepository employeeRepository, CounterService counterService, ModelMapper modelMapper) {
@@ -104,6 +104,11 @@ public class EmployeeService {
             if (employeeRepository.findEmployeeByEmail(updatedEmployeeDTO.getEmail()) != null) {
                 logger.error("Employee update failed: Email {} already exists", updatedEmployeeDTO.getEmail());
                 throw new DuplicateValueException("Employee email already exists");
+            }
+
+            if (!Pattern.matches(EMAIL_REGEX, updatedEmployeeDTO.getEmail())) {
+                logger.error("Employee update failed: invalid email");
+                throw new IllegalArgumentException("Invalid email format: " + updatedEmployeeDTO.getEmail());
             }
             existingEmployee.setEmail(updatedEmployeeDTO.getEmail());
         }
