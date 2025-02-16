@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * Data Transfer Object (DTO) for Employee.
- * Used for transferring employee data while avoiding direct exposure of entity fields.
- * This DTO excludes database metadata fields like id, createdAt, and lastModifiedAt.
+ * For transferring employee data avoiding direct exposure of entity fields.
+ * This excludes database metadata fields like id, createdAt, and lastModifiedAt.
  */
 @Data
 @AllArgsConstructor

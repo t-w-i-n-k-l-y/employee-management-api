@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,16 +30,17 @@ public class EmployeeController {
 
     /**
      * Creates a new employee object.
+     * Validated the request body by using @Valid
      *
-     * @param employeeDTO the employee data transfer object to create, validated by @Valid
-     * @return a ResponseEntity containing an ApiResponse with the created Employee object or a 500 status if creation fails
+     * @return a ResponseEntity containing an ApiResponse with the created Employee object or a 500 or 400 status if creation fails
      */
     @PostMapping
     public ResponseEntity<APIResponse<EmployeeDTO>> createEmployee (@Valid @RequestBody EmployeeDTO employeeDTO) {
+        logger.info("Received the request to create new employee");
         EmployeeDTO savedEmployeeDTO = employeeService.createEmployee(employeeDTO);
         if (savedEmployeeDTO == null) {
             logger.error("Employee creation failed");
-            return ResponseEntity.status(500).body(new APIResponse<>("Failed to create the employee", null, 500));
+            return ResponseEntity.status(400).body(new APIResponse<>("Failed to create the employee", null, 400));
         }
         logger.info("New employee created with employeeId: {}", savedEmployeeDTO.getEmployeeId());
         return ResponseEntity.status(201).body(new APIResponse<>("Employee created successfully.", savedEmployeeDTO, 201));
@@ -47,6 +49,7 @@ public class EmployeeController {
     /**
      * Updates an existing employee object.
      *
+     * @param id  employee ID of the employee to be updated
      * @return a ResponseEntity containing an ApiResponse with the updated Employee object or a 404 status if employee not found
      */
     @PutMapping("/{id}")
@@ -56,7 +59,7 @@ public class EmployeeController {
         EmployeeDTO updatedEmployeeDTO = employeeService.updateEmployee(id, employeeDTO);
         if (updatedEmployeeDTO == null) {
             logger.warn("Update failed or returned empty DTO for employee ID: {}", id);
-            return ResponseEntity.status(500).body(new APIResponse<>("Employee update failed.", null, 500));
+            return ResponseEntity.status(400).body(new APIResponse<>("Employee update failed.", null, 400));
         }
 
         logger.info("Successfully updated employee with ID: {}", id);
@@ -66,7 +69,7 @@ public class EmployeeController {
     /**
      * Deletes an employee by ID.
      *
-     * @param id the ID of the employee to delete
+     * @param id  employee ID of the employee to delete
      * @return a ResponseEntity containing an ApiResponse with the deleted Employee object or a 404 status if not found
      */
     @DeleteMapping("/{id}")
@@ -103,11 +106,10 @@ public class EmployeeController {
     /**
      * Find an employee by employee ID or get all employees.
      *
-     * @param employeeId unique id of the employee (this is an optional query parameter)
      * @return a ResponseEntity containing an ApiResponse with the Employee object (query parameter is given)/ employee list or a 404 status if not found
      */
     @GetMapping()
-    public ResponseEntity<APIResponse<?>> getEmployeeByEmployeeId (@RequestParam(required = false) String employeeId) {
+    public ResponseEntity<APIResponse<?>> getAllEmployeesOrEmployeeByEmployeeId (@RequestParam(required = false) String employeeId, Pageable pageable) {
 
         if (employeeId != null) {
             logger.info("Received request to find employee with employee id: {}", employeeId);
@@ -122,7 +124,7 @@ public class EmployeeController {
 
         } else {
             logger.info("Received request to find all employees");
-            List<EmployeeDTO> employees = employeeService.getAllEmployees();
+            List<EmployeeDTO> employees = employeeService.getAllEmployees(pageable);
 
             if (employees.isEmpty()) {
                 return ResponseEntity.status(404).body(new APIResponse<>("No employees found.", employees, 404));
@@ -138,14 +140,9 @@ public class EmployeeController {
      * @return a ResponseEntity containing an ApiResponse with the Employees having the given name or department or a 404 status if not found
      */
     @GetMapping("/search")
-    public ResponseEntity<APIResponse<Object>> getEmployeesByFullNameOrDepartment(@RequestParam(required = false) String fullName, @RequestParam(required = false) String department) {
+    public ResponseEntity<APIResponse<Object>> getEmployeesByFullNameOrDepartment(@RequestParam(required = false) String fullName, @RequestParam(required = false) String department, Pageable pageable) {
 
-        if (fullName == null && department == null) {
-            logger.error("At least one parameter (name or department) must be provided.");
-            throw new IllegalArgumentException("At least one parameter (name or department) must be provided.");
-        }
-
-        List<EmployeeDTO> employeeDTOS = employeeService.getAllEmployeesByFullNameOrDepartment(fullName, department);
+        List<EmployeeDTO> employeeDTOS = employeeService.getAllEmployeesByFullNameOrDepartment(fullName, department, pageable);
         if (employeeDTOS.isEmpty()) {
             logger.error("No matching employees exists for the name: {} or department: {}", fullName, department);
             return ResponseEntity.status(404).body(new APIResponse<>("No employees found.", null, 404));

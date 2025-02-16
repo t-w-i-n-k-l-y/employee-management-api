@@ -10,11 +10,12 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
+
 /**
- * This class is mapped to a MongoDB collection and includes validation rules
+ * Mapped to a MongoDB collection and includes validation rules
  * for the fields using Jakarta Validation annotations.
  */
-
 @Data
 @Document(collection = "employees")
 public class Employee {
@@ -35,16 +36,16 @@ public class Employee {
     @NotBlank(message = "{employee.department.blank}")
     private Department department;
 
-    @CreatedDate    // Auto created when a document is created
-    private String createdAt;
+    @CreatedDate
+    private LocalDateTime createdAt;
 
-    @LastModifiedDate   // Auto updated when a document is modified
-    private String lastModifiedAt;
+    @LastModifiedDate
+    private LocalDateTime lastModifiedAt;
 
     public Employee() {
     }
 
-    public Employee(String id, String employeeId, String fullName, String email, Department department, String createdAt, String lastModifiedAt) {
+    public Employee(String id, String employeeId, String fullName, String email, Department department, LocalDateTime createdAt, LocalDateTime lastModifiedAt) {
         this.id = id;
         this.employeeId = employeeId;
         this.fullName = fullName;

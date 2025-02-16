@@ -4,7 +4,7 @@ import lombok.Data;
 
 /**
  * Generic API response wrapper class.
- * It supports generic types to accommodate different response payloads.
+ * Supports generic types to accommodate different response payloads.
  * @param <T> The type of data included in the response.
  */
 @Data

@@ -37,13 +37,8 @@ public class CounterService {
             // Define the query to find the counter document by its ID
             Query query = Query.query(Criteria.where("id").is(counterName));
 
-            // Increment sequence field by 1
             Update update = new Update().inc("sequence", 1);
-
-            // Return the updated document and create a new one if it doesn't exist
             FindAndModifyOptions options = FindAndModifyOptions.options().returnNew(true).upsert(true);
-
-            // Executing the operation
             Counter counter = mongoTemplate.findAndModify(query, update, options, Counter.class);
 
             if (counter != null) {

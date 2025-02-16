@@ -3,20 +3,22 @@ package com.example.employee_management_api.service;
 import com.example.employee_management_api.dto.EmployeeDTO;
 import com.example.employee_management_api.exception.DuplicateValueException;
 import com.example.employee_management_api.exception.ResourceNotFoundException;
-import com.example.employee_management_api.mapper.EmployeeMapper;
 import com.example.employee_management_api.model.Employee;
 import com.example.employee_management_api.repository.EmployeeRepository;
+import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.client.ResourceAccessException;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -27,22 +29,33 @@ import java.util.stream.Collectors;
 public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final CounterService counterService;
+    private final ModelMapper modelMapper;
     private static final Logger logger = LoggerFactory.getLogger(EmployeeService.class);
 
+    private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@(.+)$";
+
     @Autowired
-    public EmployeeService(EmployeeRepository employeeRepository, CounterService counterService) {
+    public EmployeeService(EmployeeRepository employeeRepository, CounterService counterService, ModelMapper modelMapper) {
         this.employeeRepository = employeeRepository;
         this.counterService = counterService;
+        this.modelMapper = modelMapper;
     }
 
     /**
      * Creates a new employee.
-     *
-     * @param employeeDTO the employee data transfer object to create
-     * @return the saved employee
      */
     public EmployeeDTO createEmployee(EmployeeDTO employeeDTO) {
         logger.info("Attempting to create a new employee with email: {}", employeeDTO.getEmail());
+
+        if (employeeDTO.getFullName().isEmpty() || employeeDTO.getEmail().isEmpty() || employeeDTO.getDepartment().toString().isEmpty()) {
+            logger.error("Employee creation failed: Full name, email and department are required");
+            throw new IllegalArgumentException("Full name, email, and department cannot be empty");
+        }
+
+        if (!Pattern.matches(EMAIL_REGEX, employeeDTO.getEmail())) {
+            logger.error("Employee creation failed: invalid email");
+            throw new IllegalArgumentException("Invalid email format: " + employeeDTO.getEmail());
+        }
 
         if (employeeRepository.findEmployeeByEmail(employeeDTO.getEmail()) != null) {
             logger.error("Employee creation failed: Email {} already exists", employeeDTO.getEmail());
@@ -58,8 +71,11 @@ public class EmployeeService {
             logger.info("Generated unique Employee ID: {}", nextId);
             employeeDTO.setEmployeeId(nextId);
 
-            Employee savedEmployee = employeeRepository.save(EmployeeMapper.toEntity(employeeDTO, null));
-            return EmployeeMapper.toDTO(savedEmployee);
+            Employee employeeToBeSaved = modelMapper.map(employeeDTO, Employee.class);
+            employeeToBeSaved.setCreatedAt(LocalDateTime.now());
+
+            Employee savedEmployee = employeeRepository.save(employeeToBeSaved);
+            return modelMapper.map(savedEmployee, EmployeeDTO.class);
 
         } catch (Exception e) {
             logger.error("Unexpected error occurred while creating employee with email {}: {}", employeeDTO.getEmail(), e.getMessage(), e);
@@ -69,8 +85,6 @@ public class EmployeeService {
 
     /**
      * Update an existing employee.
-     *
-     * @return the saved employee
      */
     public EmployeeDTO updateEmployee(String employeeId, EmployeeDTO updatedEmployeeDTO) {
         logger.info("Updating employee with ID: {}", employeeId);
@@ -87,6 +101,10 @@ public class EmployeeService {
             existingEmployee.setFullName(updatedEmployeeDTO.getFullName());
         }
         if(updatedEmployeeDTO.getEmail() != null) {
+            if (employeeRepository.findEmployeeByEmail(updatedEmployeeDTO.getEmail()) != null) {
+                logger.error("Employee update failed: Email {} already exists", updatedEmployeeDTO.getEmail());
+                throw new DuplicateValueException("Employee email already exists");
+            }
             existingEmployee.setEmail(updatedEmployeeDTO.getEmail());
         }
         if(updatedEmployeeDTO.getDepartment() != null) {
@@ -96,10 +114,10 @@ public class EmployeeService {
         try{
             Employee savedEmployee = employeeRepository.save(existingEmployee);
             logger.info("Employee updated successfully: {}", savedEmployee);
-            return EmployeeMapper.toDTO(savedEmployee);
+            return modelMapper.map(savedEmployee, EmployeeDTO.class);
         } catch (DataAccessException e) {
             logger.error("Database error while updating employee with ID: {}", employeeId, e);
-            throw new RuntimeException("Failed to update employee. Please try again later.");
+            throw new DataAccessResourceFailureException("Failed to update employee. Please try again later.");
         } catch (Exception e) {
             logger.error("Unexpected error while updating employee with ID: {}", employeeId, e);
             throw new RuntimeException("An unexpected error occurred.");
@@ -108,8 +126,6 @@ public class EmployeeService {
 
     /**
      * Delete an existing employee.
-     *
-     * @return the deleted employee
      */
     public EmployeeDTO deleteEmployee(String id) {
         logger.info("Deleting employee with ID: {}", id);
@@ -124,11 +140,11 @@ public class EmployeeService {
             employeeRepository.delete(existingEmployee);
             logger.info("Successfully deleted employee with ID: {}", id);
 
-            return EmployeeMapper.toDTO(existingEmployee);
+            return modelMapper.map(existingEmployee, EmployeeDTO.class);
 
         } catch (DataAccessException e) {
             logger.error("Database error while deleting employee with ID: {}", id, e);
-            throw new RuntimeException("Database error occurred while deleting employee.");
+            throw new DataAccessResourceFailureException("Database error occurred while deleting employee.");
 
         } catch (Exception e) {
             logger.error("Unexpected error occurred while deleting employee with ID: {}", id, e);
@@ -138,8 +154,6 @@ public class EmployeeService {
 
     /**
      * Get an existing employee by mongoDB ID.
-     *
-     * @return the employee if exists or else return an error
      */
     public EmployeeDTO getEmployeeById (String id) {
         logger.info("Getting employee details for the _id: {}", id);
@@ -150,7 +164,7 @@ public class EmployeeService {
                 throw new ResourceNotFoundException("No Employee found for the given _id: " + id);
             }
             logger.info("Successfully retrieved employee details for the _id: {}", id);
-            return EmployeeMapper.toDTO(employee);
+            return modelMapper.map(employee, EmployeeDTO.class);
         } catch (ResourceNotFoundException e) {
             logger.error("No employee found for the given _id.");
             throw new ResourceNotFoundException(e.getMessage());
@@ -162,8 +176,6 @@ public class EmployeeService {
 
     /**
      * Get an existing employee by employee ID.
-     *
-     * @return the employee if exists or else return an error
      */
     public EmployeeDTO getEmployeeByEmployeeId (String employeeId) {
         logger.info("Getting employee details for the employee id: {}", employeeId);
@@ -174,7 +186,7 @@ public class EmployeeService {
                 throw new ResourceNotFoundException("No Employee found for the given id: " + employeeId);
             }
             logger.info("Successfully retrieved employee details for the employee id: {}", employeeId);
-            return EmployeeMapper.toDTO(employee);
+            return modelMapper.map(employee, EmployeeDTO.class);
         } catch (ResourceNotFoundException e) {
             logger.error("No employee found for the given employee id.");
             throw new ResourceNotFoundException(e.getMessage());
@@ -186,24 +198,22 @@ public class EmployeeService {
 
     /**
      * Get all employees
-     *
-     * @return all existing employees
      */
-    public List<EmployeeDTO> getAllEmployees() {
+    public List<EmployeeDTO> getAllEmployees(Pageable pageable) {
         logger.info("Fetching all employees from the database");
 
         try {
-            List<Employee> employees = employeeRepository.findAll();
+            Page<Employee> employees = employeeRepository.findAll(pageable);
 
             if (employees.isEmpty()) {
                 logger.warn("No employees found in the database.");
                 throw new ResourceNotFoundException("No employees found in the database");
             }
 
-            logger.info("Successfully retrieved {} employees.", employees.size());
+            logger.info("Successfully retrieved {} employees.", employees.getSize());
 
             return employees.stream()
-                    .map(EmployeeMapper::toDTO)
+                    .map(employee -> modelMapper.map(employee, EmployeeDTO.class))
                     .collect(Collectors.toList());
 
         } catch(ResourceNotFoundException e) {
@@ -219,31 +229,27 @@ public class EmployeeService {
 
     /**
      * Get all employees by name or department
-     *
-     * @return all existing employees that matches the given name or department
      */
-    public List<EmployeeDTO> getAllEmployeesByFullNameOrDepartment(String fullName, String department) {
+    public List<EmployeeDTO> getAllEmployeesByFullNameOrDepartment(String fullName, String department, Pageable pageable) {
         logger.info("Fetching all employees from the database matches name or department");
 
-        List<Employee> employees;
+        Page<Employee> employees;
         try {
-            if(fullName != null && department != null) {
-                employees = employeeRepository.findByFullNameOrDepartment(fullName, department);
-            } else if (fullName != null) {
-                employees = employeeRepository.findByFullNameContainingIgnoreCase(fullName);
-            } else {
-                employees = employeeRepository.findByDepartmentContainingIgnoreCase(department);
-            }
+            // Handle fullName or department null scenarios for the regex
+            String fullNameQuery = (fullName == null || fullName.isEmpty()) ? "" : fullName;
+            String departmentQuery = (department == null || department.isEmpty()) ? "" : department;
+
+            employees = employeeRepository.findByFullNameOrDepartment(fullNameQuery, departmentQuery, pageable);
 
             if (employees.isEmpty()) {
                 logger.warn("No employees found with similar name or department");
                 throw new ResourceNotFoundException("No employees found in the database");
             }
 
-            logger.info("Successfully retrieved {} employees for given name or department", employees.size());
+            logger.info("Successfully retrieved {} employees for given name or department", employees.getSize());
 
             return employees.stream()
-                    .map(EmployeeMapper::toDTO)
+                    .map(employee -> modelMapper.map(employee, EmployeeDTO.class))
                     .collect(Collectors.toList());
 
         } catch(ResourceNotFoundException e) {
