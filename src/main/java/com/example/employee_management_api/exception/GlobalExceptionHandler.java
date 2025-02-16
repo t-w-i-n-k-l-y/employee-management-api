@@ -28,4 +28,9 @@ public class GlobalExceptionHandler {
     public  ResponseEntity<APIResponse<String>> handleDuplicateValueException(DuplicateValueException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new APIResponse<>(e.getMessage(), null, 400));
     }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public  ResponseEntity<APIResponse<String>> handleResourceNotFoundException(ResourceNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new APIResponse<>(e.getMessage(), null, 404));
+    }
 }
