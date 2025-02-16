@@ -10,15 +10,9 @@ import org.springframework.stereotype.Repository;
 /**
  * Repository interface for Employee entity
  * <p>
- * This interface provides methods to interact with the Employee collection in MongoDB.
- * It extends MongoRepository, enabling basic CRUD operations.
+ * Provides methods to interact with the Employees collection in MongoDB.
+ * It extends MongoRepository, enabling basic CRUD operations and query methods
  * </p>
- *
- * <p><b>Additional Methods:</b></p>
- * <ul>
- *     <li>Find an employee by their unique employee ID.</li>
- *     <li>Search employees by name or department.</li>
- * </ul>
  */
 @Repository
 public interface EmployeeRepository extends MongoRepository<Employee, String> {

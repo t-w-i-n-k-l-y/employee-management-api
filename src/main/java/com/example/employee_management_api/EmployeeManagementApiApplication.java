@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @SpringBootApplication
 @EnableMongoAuditing
-@EnableTransactionManagement
 public class EmployeeManagementApiApplication {
 
 	public static void main(String[] args) {

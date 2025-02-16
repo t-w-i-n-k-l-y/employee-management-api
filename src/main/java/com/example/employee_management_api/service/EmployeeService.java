@@ -10,11 +10,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,9 +40,6 @@ public class EmployeeService {
 
     /**
      * Creates a new employee.
-     *
-     * @param employeeDTO the employee data transfer object to create
-     * @return the saved employee
      */
     public EmployeeDTO createEmployee(EmployeeDTO employeeDTO) {
         logger.info("Attempting to create a new employee with email: {}", employeeDTO.getEmail());
@@ -59,7 +58,10 @@ public class EmployeeService {
             logger.info("Generated unique Employee ID: {}", nextId);
             employeeDTO.setEmployeeId(nextId);
 
-            Employee savedEmployee = employeeRepository.save(modelMapper.map(employeeDTO, Employee.class));
+            Employee employeeToBeSaved = modelMapper.map(employeeDTO, Employee.class);
+            employeeToBeSaved.setCreatedAt(LocalDateTime.now());
+
+            Employee savedEmployee = employeeRepository.save(employeeToBeSaved);
             return modelMapper.map(savedEmployee, EmployeeDTO.class);
 
         } catch (Exception e) {
@@ -70,8 +72,6 @@ public class EmployeeService {
 
     /**
      * Update an existing employee.
-     *
-     * @return the saved employee
      */
     public EmployeeDTO updateEmployee(String employeeId, EmployeeDTO updatedEmployeeDTO) {
         logger.info("Updating employee with ID: {}", employeeId);
@@ -100,7 +100,7 @@ public class EmployeeService {
             return modelMapper.map(savedEmployee, EmployeeDTO.class);
         } catch (DataAccessException e) {
             logger.error("Database error while updating employee with ID: {}", employeeId, e);
-            throw new RuntimeException("Failed to update employee. Please try again later.");
+            throw new DataAccessResourceFailureException("Failed to update employee. Please try again later.");
         } catch (Exception e) {
             logger.error("Unexpected error while updating employee with ID: {}", employeeId, e);
             throw new RuntimeException("An unexpected error occurred.");
@@ -109,8 +109,6 @@ public class EmployeeService {
 
     /**
      * Delete an existing employee.
-     *
-     * @return the deleted employee
      */
     public EmployeeDTO deleteEmployee(String id) {
         logger.info("Deleting employee with ID: {}", id);
@@ -129,7 +127,7 @@ public class EmployeeService {
 
         } catch (DataAccessException e) {
             logger.error("Database error while deleting employee with ID: {}", id, e);
-            throw new RuntimeException("Database error occurred while deleting employee.");
+            throw new DataAccessResourceFailureException("Database error occurred while deleting employee.");
 
         } catch (Exception e) {
             logger.error("Unexpected error occurred while deleting employee with ID: {}", id, e);
@@ -139,8 +137,6 @@ public class EmployeeService {
 
     /**
      * Get an existing employee by mongoDB ID.
-     *
-     * @return the employee if exists or else return an error
      */
     public EmployeeDTO getEmployeeById (String id) {
         logger.info("Getting employee details for the _id: {}", id);
@@ -163,8 +159,6 @@ public class EmployeeService {
 
     /**
      * Get an existing employee by employee ID.
-     *
-     * @return the employee if exists or else return an error
      */
     public EmployeeDTO getEmployeeByEmployeeId (String employeeId) {
         logger.info("Getting employee details for the employee id: {}", employeeId);
@@ -187,8 +181,6 @@ public class EmployeeService {
 
     /**
      * Get all employees
-     *
-     * @return all existing employees
      */
     public List<EmployeeDTO> getAllEmployees(Pageable pageable) {
         logger.info("Fetching all employees from the database");
@@ -220,8 +212,6 @@ public class EmployeeService {
 
     /**
      * Get all employees by name or department
-     *
-     * @return all existing employees that matches the given name or department
      */
     public List<EmployeeDTO> getAllEmployeesByFullNameOrDepartment(String fullName, String department, Pageable pageable) {
         logger.info("Fetching all employees from the database matches name or department");
