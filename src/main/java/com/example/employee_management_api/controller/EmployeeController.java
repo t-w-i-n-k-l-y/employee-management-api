@@ -36,6 +36,7 @@ public class EmployeeController {
      */
     @PostMapping
     public ResponseEntity<APIResponse<EmployeeDTO>> createEmployee (@Valid @RequestBody EmployeeDTO employeeDTO) {
+        logger.info("Received the request to create new employee");
         EmployeeDTO savedEmployeeDTO = employeeService.createEmployee(employeeDTO);
         if (savedEmployeeDTO == null) {
             logger.error("Employee creation failed");

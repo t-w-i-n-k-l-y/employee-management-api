@@ -3,9 +3,9 @@ package com.example.employee_management_api.service;
 import com.example.employee_management_api.dto.EmployeeDTO;
 import com.example.employee_management_api.exception.DuplicateValueException;
 import com.example.employee_management_api.exception.ResourceNotFoundException;
-import com.example.employee_management_api.mapper.EmployeeMapper;
 import com.example.employee_management_api.model.Employee;
 import com.example.employee_management_api.repository.EmployeeRepository;
+import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,12 +26,14 @@ import java.util.stream.Collectors;
 public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final CounterService counterService;
+    private final ModelMapper modelMapper;
     private static final Logger logger = LoggerFactory.getLogger(EmployeeService.class);
 
     @Autowired
-    public EmployeeService(EmployeeRepository employeeRepository, CounterService counterService) {
+    public EmployeeService(EmployeeRepository employeeRepository, CounterService counterService, ModelMapper modelMapper) {
         this.employeeRepository = employeeRepository;
         this.counterService = counterService;
+        this.modelMapper = modelMapper;
     }
 
     /**
@@ -57,8 +59,8 @@ public class EmployeeService {
             logger.info("Generated unique Employee ID: {}", nextId);
             employeeDTO.setEmployeeId(nextId);
 
-            Employee savedEmployee = employeeRepository.save(EmployeeMapper.toEntity(employeeDTO, null));
-            return EmployeeMapper.toDTO(savedEmployee);
+            Employee savedEmployee = employeeRepository.save(modelMapper.map(employeeDTO, Employee.class));
+            return modelMapper.map(savedEmployee, EmployeeDTO.class);
 
         } catch (Exception e) {
             logger.error("Unexpected error occurred while creating employee with email {}: {}", employeeDTO.getEmail(), e.getMessage(), e);
@@ -95,7 +97,7 @@ public class EmployeeService {
         try{
             Employee savedEmployee = employeeRepository.save(existingEmployee);
             logger.info("Employee updated successfully: {}", savedEmployee);
-            return EmployeeMapper.toDTO(savedEmployee);
+            return modelMapper.map(savedEmployee, EmployeeDTO.class);
         } catch (DataAccessException e) {
             logger.error("Database error while updating employee with ID: {}", employeeId, e);
             throw new RuntimeException("Failed to update employee. Please try again later.");
@@ -123,7 +125,7 @@ public class EmployeeService {
             employeeRepository.delete(existingEmployee);
             logger.info("Successfully deleted employee with ID: {}", id);
 
-            return EmployeeMapper.toDTO(existingEmployee);
+            return modelMapper.map(existingEmployee, EmployeeDTO.class);
 
         } catch (DataAccessException e) {
             logger.error("Database error while deleting employee with ID: {}", id, e);
@@ -149,7 +151,7 @@ public class EmployeeService {
                 throw new ResourceNotFoundException("No Employee found for the given _id: " + id);
             }
             logger.info("Successfully retrieved employee details for the _id: {}", id);
-            return EmployeeMapper.toDTO(employee);
+            return modelMapper.map(employee, EmployeeDTO.class);
         } catch (ResourceNotFoundException e) {
             logger.error("No employee found for the given _id.");
             throw new ResourceNotFoundException(e.getMessage());
@@ -173,7 +175,7 @@ public class EmployeeService {
                 throw new ResourceNotFoundException("No Employee found for the given id: " + employeeId);
             }
             logger.info("Successfully retrieved employee details for the employee id: {}", employeeId);
-            return EmployeeMapper.toDTO(employee);
+            return modelMapper.map(employee, EmployeeDTO.class);
         } catch (ResourceNotFoundException e) {
             logger.error("No employee found for the given employee id.");
             throw new ResourceNotFoundException(e.getMessage());
@@ -202,7 +204,7 @@ public class EmployeeService {
             logger.info("Successfully retrieved {} employees.", employees.getSize());
 
             return employees.stream()
-                    .map(EmployeeMapper::toDTO)
+                    .map(employee -> modelMapper.map(employee, EmployeeDTO.class))
                     .collect(Collectors.toList());
 
         } catch(ResourceNotFoundException e) {
@@ -246,7 +248,7 @@ public class EmployeeService {
             logger.info("Successfully retrieved {} employees for given name or department", employees.getSize());
 
             return employees.stream()
-                    .map(EmployeeMapper::toDTO)
+                    .map(employee -> modelMapper.map(employee, EmployeeDTO.class))
                     .collect(Collectors.toList());
 
         } catch(ResourceNotFoundException e) {
