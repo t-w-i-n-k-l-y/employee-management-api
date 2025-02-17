@@ -5,6 +5,7 @@ import com.example.employee_management_api.exception.DuplicateValueException;
 import com.example.employee_management_api.exception.ResourceNotFoundException;
 import com.example.employee_management_api.model.Employee;
 import com.example.employee_management_api.repository.EmployeeRepository;
+import com.example.employee_management_api.util.APIResponse;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,6 @@ import org.springframework.web.client.ResourceAccessException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Service class for managing employees.
@@ -44,7 +44,7 @@ public class EmployeeService {
     /**
      * Creates a new employee.
      */
-    public EmployeeDTO createEmployee(EmployeeDTO employeeDTO) {
+    public APIResponse<EmployeeDTO> createEmployee(EmployeeDTO employeeDTO) {
         logger.info("Attempting to create a new employee with email: {}", employeeDTO.getEmail());
 
         if (employeeDTO.getFullName().isEmpty() || employeeDTO.getEmail().isEmpty() || employeeDTO.getDepartment().toString().isEmpty()) {
@@ -75,7 +75,13 @@ public class EmployeeService {
             employeeToBeSaved.setCreatedAt(LocalDateTime.now());
 
             Employee savedEmployee = employeeRepository.save(employeeToBeSaved);
-            return modelMapper.map(savedEmployee, EmployeeDTO.class);
+            EmployeeDTO savedEmployeeDTO = modelMapper.map(savedEmployee, EmployeeDTO.class);
+            if (savedEmployeeDTO == null) {
+                logger.error("Employee creation failed");
+                return new APIResponse<>("Failed to create the employee", null, 400);
+            }
+            logger.info("New employee created with employeeId: {}", savedEmployeeDTO.getEmployeeId());
+            return new APIResponse<>("Employee created successfully.", savedEmployeeDTO, 201);
 
         } catch (Exception e) {
             logger.error("Unexpected error occurred while creating employee with email {}: {}", employeeDTO.getEmail(), e.getMessage(), e);
@@ -86,7 +92,7 @@ public class EmployeeService {
     /**
      * Update an existing employee.
      */
-    public EmployeeDTO updateEmployee(String employeeId, EmployeeDTO updatedEmployeeDTO) {
+    public APIResponse<EmployeeDTO> updateEmployee(String employeeId, EmployeeDTO updatedEmployeeDTO) {
         logger.info("Updating employee with ID: {}", employeeId);
 
         Employee existingEmployee = employeeRepository.findByEmployeeId(employeeId);
@@ -119,7 +125,15 @@ public class EmployeeService {
         try{
             Employee savedEmployee = employeeRepository.save(existingEmployee);
             logger.info("Employee updated successfully: {}", savedEmployee);
-            return modelMapper.map(savedEmployee, EmployeeDTO.class);
+            EmployeeDTO savedEmployeeDTO = modelMapper.map(savedEmployee, EmployeeDTO.class);
+            if (savedEmployeeDTO == null) {
+                logger.warn("Update failed or returned empty DTO for employee ID: {}", employeeId);
+                return new APIResponse<>("Employee update failed.", null, 400);
+            }
+
+            logger.info("Successfully updated employee with ID: {}", employeeId);
+            return new APIResponse<>("Employee details updated successfully.", savedEmployeeDTO, 200);
+
         } catch (DataAccessException e) {
             logger.error("Database error while updating employee with ID: {}", employeeId, e);
             throw new DataAccessResourceFailureException("Failed to update employee. Please try again later.");
@@ -132,20 +146,20 @@ public class EmployeeService {
     /**
      * Delete an existing employee.
      */
-    public EmployeeDTO deleteEmployee(String id) {
+    public APIResponse<EmployeeDTO> deleteEmployee(String id) {
         logger.info("Deleting employee with ID: {}", id);
 
         Employee existingEmployee = employeeRepository.findByEmployeeId(id);
         if(existingEmployee == null) {
             logger.error("Employee not found with ID: {}", id);
-            throw new ResourceNotFoundException("Employee not found with ID: " + id);
+            return new APIResponse<>("Employee not found. Unable to delete.", null, 404);
         }
 
         try {
             employeeRepository.delete(existingEmployee);
             logger.info("Successfully deleted employee with ID: {}", id);
 
-            return modelMapper.map(existingEmployee, EmployeeDTO.class);
+            return new APIResponse<>("Employee details deleted successfully.", modelMapper.map(existingEmployee, EmployeeDTO.class), 200);
 
         } catch (DataAccessException e) {
             logger.error("Database error while deleting employee with ID: {}", id, e);
@@ -160,7 +174,7 @@ public class EmployeeService {
     /**
      * Get an existing employee by mongoDB ID.
      */
-    public EmployeeDTO getEmployeeById (String id) {
+    public APIResponse<EmployeeDTO> getEmployeeById (String id) {
         logger.info("Getting employee details for the _id: {}", id);
         try {
             Employee employee = employeeRepository.findById(id).orElse(null);
@@ -169,7 +183,7 @@ public class EmployeeService {
                 throw new ResourceNotFoundException("No Employee found for the given _id: " + id);
             }
             logger.info("Successfully retrieved employee details for the _id: {}", id);
-            return modelMapper.map(employee, EmployeeDTO.class);
+            return new APIResponse<>("Employee details retrieved successfully", modelMapper.map(employee, EmployeeDTO.class), 200) ;
         } catch (ResourceNotFoundException e) {
             logger.error("No employee found for the given _id.");
             throw new ResourceNotFoundException(e.getMessage());
@@ -182,7 +196,7 @@ public class EmployeeService {
     /**
      * Get an existing employee by employee ID.
      */
-    public EmployeeDTO getEmployeeByEmployeeId (String employeeId) {
+    public APIResponse<EmployeeDTO> getEmployeeByEmployeeId (String employeeId) {
         logger.info("Getting employee details for the employee id: {}", employeeId);
         try {
             Employee employee = employeeRepository.findByEmployeeId(employeeId);
@@ -191,7 +205,7 @@ public class EmployeeService {
                 throw new ResourceNotFoundException("No Employee found for the given id: " + employeeId);
             }
             logger.info("Successfully retrieved employee details for the employee id: {}", employeeId);
-            return modelMapper.map(employee, EmployeeDTO.class);
+            return new APIResponse<>("Employee details retrieved successfully", modelMapper.map(employee, EmployeeDTO.class), 200);
         } catch (ResourceNotFoundException e) {
             logger.error("No employee found for the given employee id.");
             throw new ResourceNotFoundException(e.getMessage());
@@ -204,7 +218,7 @@ public class EmployeeService {
     /**
      * Get all employees
      */
-    public List<EmployeeDTO> getAllEmployees(Pageable pageable) {
+    public APIResponse<List<EmployeeDTO>> getAllEmployees(Pageable pageable) {
         logger.info("Fetching all employees from the database");
 
         try {
@@ -217,9 +231,10 @@ public class EmployeeService {
 
             logger.info("Successfully retrieved {} employees.", employees.getSize());
 
-            return employees.stream()
+            List<EmployeeDTO> employeeDTOSList = employees.stream()
                     .map(employee -> modelMapper.map(employee, EmployeeDTO.class))
-                    .collect(Collectors.toList());
+                    .toList();
+            return new APIResponse<>("Employees retrieved successfully.", employeeDTOSList, 200);
 
         } catch(ResourceNotFoundException e) {
             throw new ResourceNotFoundException(e.getMessage());
@@ -235,7 +250,7 @@ public class EmployeeService {
     /**
      * Get all employees by name or department
      */
-    public List<EmployeeDTO> getAllEmployeesByFullNameOrDepartment(String fullName, String department, Pageable pageable) {
+    public APIResponse<List<EmployeeDTO>> getAllEmployeesByFullNameOrDepartment(String fullName, String department, Pageable pageable) {
         logger.info("Fetching all employees from the database matches name or department");
 
         Page<Employee> employees;
@@ -252,10 +267,10 @@ public class EmployeeService {
             }
 
             logger.info("Successfully retrieved {} employees for given name or department", employees.getSize());
-
-            return employees.stream()
+            List<EmployeeDTO> employeeDTOSList = employees.stream()
                     .map(employee -> modelMapper.map(employee, EmployeeDTO.class))
-                    .collect(Collectors.toList());
+                    .toList();
+            return new APIResponse<>("Retrieved employees successfully", employeeDTOSList, 200);
 
         } catch(ResourceNotFoundException e) {
             throw new ResourceNotFoundException(e.getMessage());

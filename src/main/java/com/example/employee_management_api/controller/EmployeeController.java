@@ -37,13 +37,8 @@ public class EmployeeController {
     @PostMapping
     public ResponseEntity<APIResponse<EmployeeDTO>> createEmployee (@Valid @RequestBody EmployeeDTO employeeDTO) {
         logger.info("Received the request to create new employee");
-        EmployeeDTO savedEmployeeDTO = employeeService.createEmployee(employeeDTO);
-        if (savedEmployeeDTO == null) {
-            logger.error("Employee creation failed");
-            return ResponseEntity.status(400).body(new APIResponse<>("Failed to create the employee", null, 400));
-        }
-        logger.info("New employee created with employeeId: {}", savedEmployeeDTO.getEmployeeId());
-        return ResponseEntity.status(201).body(new APIResponse<>("Employee created successfully.", savedEmployeeDTO, 201));
+        APIResponse<EmployeeDTO> apiResponse = employeeService.createEmployee(employeeDTO);
+        return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
     }
 
     /**
@@ -55,15 +50,8 @@ public class EmployeeController {
     @PutMapping("/{id}")
     public ResponseEntity<APIResponse<EmployeeDTO>> updateEmployee(@PathVariable String id, @Valid @RequestBody EmployeeDTO employeeDTO) {
         logger.info("Received request to update employee with ID: {}", id);
-
-        EmployeeDTO updatedEmployeeDTO = employeeService.updateEmployee(id, employeeDTO);
-        if (updatedEmployeeDTO == null) {
-            logger.warn("Update failed or returned empty DTO for employee ID: {}", id);
-            return ResponseEntity.status(400).body(new APIResponse<>("Employee update failed.", null, 400));
-        }
-
-        logger.info("Successfully updated employee with ID: {}", id);
-        return ResponseEntity.status(200).body(new APIResponse<>("Employee details updated successfully.", updatedEmployeeDTO, 200));
+        APIResponse<EmployeeDTO> apiResponse = employeeService.updateEmployee(id, employeeDTO);
+        return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
     }
 
     /**
@@ -75,13 +63,8 @@ public class EmployeeController {
     @DeleteMapping("/{id}")
     public ResponseEntity<APIResponse<EmployeeDTO>> deleteEmployee(@PathVariable String id) {
         logger.info("Received request to delete employee with ID: {}", id);
-
-        EmployeeDTO deletedEmployeeDTO = employeeService.deleteEmployee(id);
-        if (deletedEmployeeDTO == null) {
-            logger.error("Delete failed - Employee with ID {} not found.", id);
-            return ResponseEntity.status(404).body(new APIResponse<>("Employee not found. Unable to delete.", null, 404));
-        }
-        return ResponseEntity.status(200).body(new APIResponse<>("Employee details deleted successfully.", deletedEmployeeDTO, 200));
+        APIResponse<EmployeeDTO> apiResponse = employeeService.deleteEmployee(id);
+        return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
     }
 
     /**
@@ -93,14 +76,8 @@ public class EmployeeController {
     @GetMapping("/{id}")
     public ResponseEntity<APIResponse<EmployeeDTO>> getEmployeeById (@PathVariable String id) {
         logger.info("Received request to find employee with _id: {}", id);
-
-        EmployeeDTO employeeDTO = employeeService.getEmployeeById(id);
-        if (employeeDTO == null) {
-            logger.error("No employee found for the given _id: {}", id);
-            return ResponseEntity.status(404).body(new APIResponse<>("Employee not found.", null, 404));
-        }
-
-        return ResponseEntity.status(200).body(new APIResponse<>("Employee details retrieved successfully", employeeDTO, 200));
+        APIResponse<EmployeeDTO> apiResponse = employeeService.getEmployeeById(id);
+        return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
     }
 
     /**
@@ -113,24 +90,13 @@ public class EmployeeController {
 
         if (employeeId != null) {
             logger.info("Received request to find employee with employee id: {}", employeeId);
-
-            EmployeeDTO employeeDTO = employeeService.getEmployeeByEmployeeId(employeeId);
-            if (employeeDTO == null) {
-                logger.error("No employee found for the given employee id: {}", employeeId);
-                return ResponseEntity.status(404).body(new APIResponse<>("Employee not found.", null, 404));
-            }
-
-            return ResponseEntity.status(200).body(new APIResponse<>("Employee details retrieved successfully", employeeDTO, 200));
+            APIResponse<EmployeeDTO> apiResponse = employeeService.getEmployeeByEmployeeId(employeeId);
+            return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
 
         } else {
             logger.info("Received request to find all employees");
-            List<EmployeeDTO> employees = employeeService.getAllEmployees(pageable);
-
-            if (employees.isEmpty()) {
-                return ResponseEntity.status(404).body(new APIResponse<>("No employees found.", employees, 404));
-            }
-
-            return ResponseEntity.status(200).body(new APIResponse<>("Employees retrieved successfully.", employees, 200));
+            APIResponse<List<EmployeeDTO>> apiResponse = employeeService.getAllEmployees(pageable);
+            return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
         }
     }
 
@@ -140,17 +106,10 @@ public class EmployeeController {
      * @return a ResponseEntity containing an ApiResponse with the Employees having the given name or department or a 404 status if not found
      */
     @GetMapping("/search")
-    public ResponseEntity<APIResponse<Object>> getEmployeesByFullNameOrDepartment(@RequestParam(required = false) String fullName, @RequestParam(required = false) String department, Pageable pageable) {
-
-        List<EmployeeDTO> employeeDTOS = employeeService.getAllEmployeesByFullNameOrDepartment(fullName, department, pageable);
-        if (employeeDTOS.isEmpty()) {
-            logger.error("No matching employees exists for the name: {} or department: {}", fullName, department);
-            return ResponseEntity.status(404).body(new APIResponse<>("No employees found.", null, 404));
-        }
-
-        logger.info("Retrieved employees successfully");
-        return ResponseEntity.status(200).body(new APIResponse<>("Retrieved employees successfully", employeeDTOS, 200));
-
+    public ResponseEntity<APIResponse<List<EmployeeDTO>>> getEmployeesByFullNameOrDepartment(@RequestParam(required = false) String fullName, @RequestParam(required = false) String department, Pageable pageable) {
+        logger.info("Received request to search all employees with name: {} and department: {}", fullName, department);
+        APIResponse<List<EmployeeDTO>> apiResponse = employeeService.getAllEmployeesByFullNameOrDepartment(fullName, department, pageable);
+        return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
     }
 
 }
