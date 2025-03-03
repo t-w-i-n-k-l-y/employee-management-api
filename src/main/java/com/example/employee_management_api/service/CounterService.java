@@ -1,5 +1,6 @@
 package com.example.employee_management_api.service;
 
+import com.example.employee_management_api.exception.ResourceNotFoundException;
 import com.example.employee_management_api.model.Counter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Service for managing sequential counters in MongoDB.
@@ -29,6 +31,7 @@ public class CounterService {
      * @param counterName The name of the counter to increment.
      * @return The next sequence number for the given counter.
      */
+    @Transactional
     public int getNextSequence(String counterName) {
 
         try {
@@ -41,13 +44,13 @@ public class CounterService {
             FindAndModifyOptions options = FindAndModifyOptions.options().returnNew(true).upsert(true);
             Counter counter = mongoTemplate.findAndModify(query, update, options, Counter.class);
 
-            if (counter != null) {
-                logger.info("New sequence value for {}: {}", counterName, counter.getSequence());
-                return counter.getSequence();
-            } else {
+            if (counter == null) {
                 logger.warn("Counter document for {} was not found; returning default sequence value 1.", counterName);
-                return 1;
+                throw new ResourceNotFoundException("No counter found or unable to get the next available employee ID");
             }
+
+            logger.info("New sequence value for {}: {}", counterName, counter.getSequence());
+            return counter.getSequence();
 
         } catch (DataAccessException e) {
             logger.error("Database error while fetching sequence number for {}: {}", counterName, e.getMessage(), e);

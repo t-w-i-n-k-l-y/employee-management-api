@@ -1,8 +1,8 @@
 package com.example.employee_management_api.controller;
 
 import com.example.employee_management_api.dto.EmployeeDTO;
+import com.example.employee_management_api.dto.APIResponse;
 import com.example.employee_management_api.service.EmployeeService;
-import com.example.employee_management_api.util.APIResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,9 +61,9 @@ public class EmployeeController {
      * @return a ResponseEntity containing an ApiResponse with the deleted Employee object or a 404 status if not found
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<APIResponse<EmployeeDTO>> deleteEmployee(@PathVariable String id) {
+    public ResponseEntity<APIResponse<String>> deleteEmployee(@PathVariable String id) {
         logger.info("Received request to delete employee with ID: {}", id);
-        APIResponse<EmployeeDTO> apiResponse = employeeService.deleteEmployee(id);
+        APIResponse<String> apiResponse = employeeService.deleteEmployee(id);
         return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
     }
 
@@ -76,7 +76,7 @@ public class EmployeeController {
     @GetMapping("/{id}")
     public ResponseEntity<APIResponse<EmployeeDTO>> getEmployeeById (@PathVariable String id) {
         logger.info("Received request to find employee with _id: {}", id);
-        APIResponse<EmployeeDTO> apiResponse = employeeService.getEmployeeById(id);
+        APIResponse<EmployeeDTO> apiResponse = employeeService.getEmployeeByEmployeeId(id);
         return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
     }
 
@@ -86,18 +86,10 @@ public class EmployeeController {
      * @return a ResponseEntity containing an ApiResponse with the Employee object (query parameter is given)/ employee list or a 404 status if not found
      */
     @GetMapping()
-    public ResponseEntity<APIResponse<?>> getAllEmployeesOrEmployeeByEmployeeId (@RequestParam(required = false) String employeeId, Pageable pageable) {
-
-        if (employeeId != null) {
-            logger.info("Received request to find employee with employee id: {}", employeeId);
-            APIResponse<EmployeeDTO> apiResponse = employeeService.getEmployeeByEmployeeId(employeeId);
-            return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
-
-        } else {
-            logger.info("Received request to find all employees");
-            APIResponse<List<EmployeeDTO>> apiResponse = employeeService.getAllEmployees(pageable);
-            return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
-        }
+    public ResponseEntity<APIResponse<?>> getAllEmployeesOrEmployeeByEmployeeId (Pageable pageable) {
+        logger.info("Received request to find all employees");
+        APIResponse<List<EmployeeDTO>> apiResponse = employeeService.getAllEmployees(pageable);
+        return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
     }
 
     /**
@@ -111,5 +103,4 @@ public class EmployeeController {
         APIResponse<List<EmployeeDTO>> apiResponse = employeeService.getAllEmployeesByFullNameOrDepartment(fullName, department, pageable);
         return ResponseEntity.status(apiResponse.getStatusCode()).body(apiResponse);
     }
-
 }

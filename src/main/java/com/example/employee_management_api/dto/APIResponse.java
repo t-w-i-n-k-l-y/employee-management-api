@@ -1,4 +1,4 @@
-package com.example.employee_management_api.util;
+package com.example.employee_management_api.dto;
 
 import lombok.Data;
 
